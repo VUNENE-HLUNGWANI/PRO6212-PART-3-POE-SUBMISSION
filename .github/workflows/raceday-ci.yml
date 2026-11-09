@@ -1,0 +1,44 @@
+name: RaceDay CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore solution (API, MVC and tests)
+        run: dotnet restore RaceDayAPI.slnx
+
+      - name: Build solution
+        run: dotnet build RaceDayAPI.slnx --no-restore -c Release
+
+      - name: Build RaceDay API
+        run: dotnet build RaceDayAPI/RaceDayAPI.csproj --no-restore -c Release
+
+      - name: Build RaceDay MVC
+        run: dotnet build RaceDayMVC/RaceDayMVC.csproj --no-restore -c Release
+
+      - name: Run API unit tests
+        run: dotnet test RaceDayAPI.Tests/RaceDayAPI.Tests.csproj --no-build -c Release --verbosity normal
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker images (API and MVC)
+        run: docker compose build
