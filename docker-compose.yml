@@ -1,0 +1,31 @@
+services:
+  raceday-api:
+    build:
+      context: ./RaceDayAPI
+      dockerfile: Dockerfile
+    container_name: raceday-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: ${RACEDAY_SQL_CONNECTION}
+      AzureBlobStorage__ConnectionString: ${AZURE_BLOB_CONNECTION}
+      AzureBlobStorage__ContainerName: event-banners
+      Registration__OrganiserCode: ${ORGANISER_CODE}
+    ports:
+      - "5049:8080"
+    restart: unless-stopped
+
+  raceday-mvc:
+    build:
+      context: ./RaceDayMVC
+      dockerfile: Dockerfile
+    container_name: raceday-mvc
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:8080
+      ApiSettings__BaseUrl: http://raceday-api:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - raceday-api
+    restart: unless-stopped
