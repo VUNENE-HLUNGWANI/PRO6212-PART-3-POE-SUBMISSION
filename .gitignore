@@ -9,7 +9,11 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.env
+
+# Local secrets (never commit). The example file stays tracked.
+.env
+.env.*
+!.env.example
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
