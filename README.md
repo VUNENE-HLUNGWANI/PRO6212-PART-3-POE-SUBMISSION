@@ -2,7 +2,7 @@
 
 RaceDay is a sporting event management web app for running, walking and cycling events. Organisers manage events, categories and results, and participants enrol and track finish times. It has an ASP.NET Core 8 Web API with SQL Server, an MVC front end, Azure Blob Storage for images, and Docker. Tests and CI are included.
 
-**Video presentation:** <paste YouTube link here>
+**Video presentation:** [Watch the RaceDay Application Demonstration](https://youtu.be/CPYWL6qtDr0)
 
 ## Contents
 
@@ -60,7 +60,7 @@ Image uploads follow one path: the browser posts the file to the MVC app, the MV
 
 ## Project structure
 
-```
+```text
 RaceDayAPI.slnx            Solution file (opens both projects and the tests)
 docker-compose.yml         Starts the API and MVC containers together
 .env.example               Template for the secrets the containers need
@@ -111,10 +111,12 @@ scripts/                   Run-RaceDayTests.ps1, an end-to-end test of the runni
    - `RACEDAY_SQL_CONNECTION`: SQL Server connection string
    - `AZURE_BLOB_CONNECTION`: Azure Storage connection string
    - `ORGANISER_CODE`: the code required to register as an Organiser
+
 2. Make sure the database schema exists. Run the migrations once against your SQL Server database, using the same connection string as in `.env` (for example with `dotnet ef database update --project RaceDayAPI`).
+
 3. From the repository root, the folder containing `docker-compose.yml`, run:
 
-```
+```bash
 docker compose up --build
 ```
 
@@ -139,13 +141,13 @@ The API exposes Swagger UI when it is running. With Docker, open http://localhos
 
 Unit tests for the API:
 
-```
+```bash
 dotnet test RaceDayAPI.Tests/RaceDayAPI.Tests.csproj
 ```
 
 End-to-end tests for the running app (start the containers first):
 
-```
+```powershell
 .\scripts\Run-RaceDayTests.ps1
 ```
 
