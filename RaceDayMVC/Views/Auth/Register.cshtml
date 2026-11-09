@@ -1,0 +1,154 @@
+﻿@model RaceDayMVC.Controllers.AuthController.RegisterViewModel
+@{
+    ViewData["Title"] = "Create account";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <div class="rd-card">
+            <div class="rd-card-body p-4 p-lg-5">
+                <p class="rd-eyebrow">Join RaceDay</p>
+                <h1 class="rd-title mb-1">Create your account</h1>
+                <p class="rd-subtitle mb-4">Three quick steps. You can update your details later.</p>
+
+                @if (ViewBag.Error is string registerError)
+                {
+                    <div class="rd-alert rd-alert-error" role="alert">@registerError</div>
+                }
+
+                <div asp-validation-summary="ModelOnly" class="rd-validation-summary rd-alert rd-alert-error"></div>
+
+                <form asp-action="Register" method="post" novalidate data-wizard>
+                    <ol class="rd-stepper">
+                        <li data-step-label>Account</li>
+                        <li data-step-label>Role</li>
+                        <li data-step-label>Details</li>
+                    </ol>
+
+                    <section data-step>
+                        <div class="rd-form-grid">
+                            <div>
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control" required autocomplete="given-name" />
+                                <span asp-validation-for="FirstName" class="field-validation-error"></span>
+                            </div>
+                            <div>
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control" required autocomplete="family-name" />
+                                <span asp-validation-for="LastName" class="field-validation-error"></span>
+                            </div>
+                            <div class="rd-field-full">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" type="email" class="form-control" required autocomplete="email" />
+                                <span asp-validation-for="Email" class="field-validation-error"></span>
+                            </div>
+                            <div>
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" required autocomplete="tel" />
+                                <span asp-validation-for="PhoneNumber" class="field-validation-error"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" required minlength="8" autocomplete="new-password" />
+                                <div class="rd-hint">At least 8 characters.</div>
+                                <span asp-validation-for="Password" class="field-validation-error"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section data-step>
+                        <p class="rd-muted mb-3">Choose how you will use RaceDay.</p>
+
+                        <div class="rd-choice-grid">
+                            <label class="rd-choice">
+                                <input type="radio" asp-for="Role" value="Participant" required />
+                                <span class="rd-choice-card">
+                                    <strong>Participant</strong>
+                                    <span>Enrol in races, track your results and manage your profile.</span>
+                                </span>
+                            </label>
+
+                            <label class="rd-choice">
+                                <input type="radio" asp-for="Role" value="Organiser" required />
+                                <span class="rd-choice-card">
+                                    <strong>Organiser</strong>
+                                    <span>Create events, set categories and record race results.</span>
+                                </span>
+                            </label>
+                        </div>
+                        <span asp-validation-for="Role" class="field-validation-error"></span>
+                    </section>
+
+                    <section data-step>
+                        <div data-role-section="Participant" hidden>
+                            <div class="rd-form-grid">
+                                <div>
+                                    <label asp-for="DateOfBirth" class="form-label"></label>
+                                    <input asp-for="DateOfBirth" type="date" class="form-control" data-role-required />
+                                    <span asp-validation-for="DateOfBirth" class="field-validation-error"></span>
+                                </div>
+                                <div>
+                                    <label asp-for="Gender" class="form-label"></label>
+                                    <select asp-for="Gender" class="form-select" data-role-required>
+                                        <option value="">Select</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                        <option value="Prefer not to say">Prefer not to say</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label asp-for="EmergencyContactName" class="form-label"></label>
+                                    <input asp-for="EmergencyContactName" class="form-control" data-role-required />
+                                </div>
+                                <div>
+                                    <label asp-for="EmergencyContactNumber" class="form-label"></label>
+                                    <input asp-for="EmergencyContactNumber" class="form-control" data-role-required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div data-role-section="Organiser" hidden>
+                            <div class="rd-form-grid">
+                                <div>
+                                    <label asp-for="OrganisationName" class="form-label"></label>
+                                    <input asp-for="OrganisationName" class="form-control" data-role-required />
+                                </div>
+                                <div>
+                                    <label asp-for="OrganisationContact" class="form-label"></label>
+                                    <input asp-for="OrganisationContact" class="form-control" data-role-required />
+                                </div>
+                                <div class="rd-field-full">
+                                    <label asp-for="OrganiserCode" class="form-label"></label>
+                                    <input asp-for="OrganiserCode" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="rd-muted small mt-3 mb-0">Select a role in the previous step to see the fields you need.</p>
+                    </section>
+
+                    <div class="rd-wizard-actions">
+                        <button type="button" class="rd-btn rd-btn-outline" data-prev hidden>Back</button>
+                        <div>
+                            <button type="button" class="rd-btn rd-btn-primary" data-next>Next</button>
+                            <button type="submit" class="rd-btn rd-btn-accent" data-submit hidden>Create account</button>
+                        </div>
+                    </div>
+                </form>
+
+                <p class="rd-muted text-center mt-4 mb-0">
+                    Already registered? <a asp-action="Login">Log in</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Home")">Back to home</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

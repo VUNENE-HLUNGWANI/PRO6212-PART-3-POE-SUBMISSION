@@ -1,0 +1,92 @@
+﻿@model List<JsonElement>
+@{
+    ViewData["Title"] = "Registrations";
+    var eventId = (int)(ViewBag.EventId ?? 0);
+    var registrationClosed = (bool)(ViewBag.RegistrationClosed ?? false);
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Organiser</p>
+        <h1 class="rd-title">Registrations</h1>
+        <p class="rd-subtitle">Everyone enrolled in this event, with bib numbers, categories and status.</p>
+        @if (registrationClosed)
+        {
+            <span class="rd-badge rd-badge-muted">Registration closed</span>
+        }
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Organiser")">Back to dashboard</a>
+        <a class="rd-btn rd-btn-accent" asp-controller="Results" asp-action="Enter" asp-route-id="@eventId">Enter results</a>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="rd-empty">
+        <h2>No registrations yet</h2>
+        <p>Participants will appear here once they enrol in a category.</p>
+    </div>
+}
+else
+{
+    <div class="rd-card">
+        <div class="rd-table-wrap">
+            <table class="rd-table">
+                <thead>
+                    <tr>
+                        <th>Bib</th>
+                        <th>Participant</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var registration in Model)
+                    {
+                        var participant = Get(registration, "participant");
+                        var user = participant.HasValue ? Get(participant.Value, "user") : null;
+                        var participantName = user.HasValue
+                            ? $"{Text(user.Value, "firstName")} {Text(user.Value, "lastName")}".Trim()
+                            : "Participant";
+                        var gender = participant.HasValue ? Text(participant.Value, "gender") : string.Empty;
+                        var category = Get(registration, "category");
+                        var categoryName = category.HasValue ? Text(category.Value, "categoryName") : "-";
+                        var registeredOn = DateValue(registration, "registrationDate");
+                        var registrationStatus = Text(registration, "registrationStatus", "-");
+                        var enrolmentId = IntValue(registration, "participantEventID") ?? 0;
+
+                        <tr>
+                            <td><span class="rd-badge rd-badge-soft">@Text(registration, "bib", "-")</span></td>
+                            <td>
+                                <strong>@participantName</strong>
+                                @if (!string.IsNullOrEmpty(gender))
+                                {
+                                    <div class="rd-muted small">@gender</div>
+                                }
+                            </td>
+                            <td>@categoryName</td>
+                            <td>
+                                <span class="rd-badge @StatusBadge.CssClass(registrationStatus)">@registrationStatus</span>
+                                @if (string.Equals(registrationStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <form asp-controller="Organiser"
+                                          asp-action="UpdateEnrolmentStatus"
+                                          method="post"
+                                          class="d-inline-block ms-2 m-0">
+                                        <input type="hidden" name="eventId" value="@eventId" />
+                                        <input type="hidden" name="enrolmentId" value="@enrolmentId" />
+                                        <input type="hidden" name="status" value="Confirmed" />
+                                        <button type="submit" class="rd-btn rd-btn-outline rd-btn-sm">Confirm</button>
+                                    </form>
+                                }
+                            </td>
+                            <td>@(registeredOn.HasValue ? registeredOn.Value.ToString("dd MMM yyyy") : "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

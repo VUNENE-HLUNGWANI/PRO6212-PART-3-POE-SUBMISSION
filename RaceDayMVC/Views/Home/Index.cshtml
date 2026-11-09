@@ -1,0 +1,341 @@
+﻿@using System.Linq
+@using Microsoft.AspNetCore.Html
+@{
+    ViewData["Title"] = "Home";
+
+    var userId = Context.Session.GetInt32("UserId");
+    var isLoggedIn = userId.HasValue;
+    var role = (Context.Session.GetString("Role") ?? string.Empty).Trim();
+    var firstName = Context.Session.GetString("FirstName") ?? string.Empty;
+    var isOrganiser = string.Equals(role, "Organiser", StringComparison.OrdinalIgnoreCase);
+    var isParticipant = string.Equals(role, "Participant", StringComparison.OrdinalIgnoreCase);
+
+    // Role: "" = open to everyone, "Any" = any signed-in user, otherwise the role required.
+    var hubTiles = new List<(string Title, string Text, string Controller, string Action, string Role)>
+    {
+        ("Race calendar", "Search upcoming races, open any event and see its categories.", "Events", "Index", ""),
+        ("My enrolments", "Every race you have entered, with bib numbers and enrolment status.", "MyEnrolments", "Index", "Participant"),
+        ("My results", "Finish times and positions from the races you have completed.", "MyResults", "Index", "Participant"),
+        ("Dashboard", "Your events and enrolment totals. Choose an event to view enrolments or record results.", "Organiser", "Index", "Organiser"),
+        ("Create event", "Add a new race with a banner, distance and event type.", "Organiser", "Create", "Organiser"),
+        ("Categories", "Define age and distance categories for each event.", "Categories", "Index", "Organiser"),
+        ("Profile", "Update your details, email and profile picture.", "Profile", "Index", "Any")
+    };
+
+    var visibleTiles = hubTiles.Where(t =>
+        !isLoggedIn
+        || t.Role == ""
+        || t.Role == "Any"
+        || string.Equals(t.Role, role, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    var disciplines = new List<(string Name, string Type, string Text, string Detail, string Tint)>
+    {
+        ("Run", "Run", "Road races, fun runs and community runs for every ability.", "Categories from Under 20 to Senior, 10km and 21km.", "255, 42, 95"),
+        ("Walk", "Walk", "Walking events for families, fitness walkers and charity walks.", "Short routes and longer challenges side by side.", "250, 204, 21"),
+        ("Cycle", "Cycle", "Road cycling, from community rides to competitive races.", "Age and distance categories for every rider.", "34, 211, 238")
+    };
+
+    var primaryLink = !isLoggedIn ? ("Events", "Index", "Find a race")
+        : isParticipant ? ("MyEnrolments", "Index", "My enrolments")
+        : isOrganiser ? ("Organiser", "Index", "Open dashboard")
+        : ("Events", "Index", "Race calendar");
+
+    var heroEyebrow = isLoggedIn ? (role + " dashboard") : "Road race management";
+    var heroTitle = isLoggedIn
+        ? "Welcome back" + (string.IsNullOrEmpty(firstName) ? "" : ", " + firstName) + "."
+        : "Every race.";
+}
+
+@functions {
+    public IHtmlContent RunnerFigure() => new HtmlString(
+        "<svg class='rd-fig rd-fig-run' viewBox='0 0 60 90' aria-hidden='true'>" +
+        "<circle class='rd-fig-head' cx='34' cy='12' r='7' />" +
+        "<path class='rd-fig-line' d='M30 22 L26 52' />" +
+        "<path class='rd-fig-line rd-arm-a' d='M29 30 L18 42 L12 36' />" +
+        "<path class='rd-fig-line rd-arm-b' d='M29 30 L40 42 L46 36' />" +
+        "<path class='rd-fig-line rd-leg-a' d='M26 52 L18 68 L10 80' />" +
+        "<path class='rd-fig-line rd-leg-b' d='M26 52 L36 68 L44 80' />" +
+        "</svg>");
+
+    public IHtmlContent WalkerFigure() => new HtmlString(
+        "<svg class='rd-fig rd-fig-walk' viewBox='0 0 60 90' aria-hidden='true'>" +
+        "<circle class='rd-fig-head' cx='32' cy='12' r='7' />" +
+        "<path class='rd-fig-line' d='M29 22 L27 52' />" +
+        "<path class='rd-fig-line rd-arm-a' d='M29 30 L22 46 L20 54' />" +
+        "<path class='rd-fig-line rd-arm-b' d='M29 30 L36 46 L38 54' />" +
+        "<path class='rd-fig-line rd-leg-a' d='M27 52 L22 68 L20 82' />" +
+        "<path class='rd-fig-line rd-leg-b' d='M27 52 L33 68 L36 82' />" +
+        "</svg>");
+
+    public IHtmlContent CyclistFigure() => new HtmlString(
+        "<svg class='rd-fig rd-fig-cycle' viewBox='0 0 110 80' aria-hidden='true'>" +
+        "<g class='rd-wheel' style='transform-origin: 22px 58px;'>" +
+        "<circle cx='22' cy='58' r='17' />" +
+        "<path d='M22 58 L22 41 M22 58 L36 66 M22 58 L8 66' />" +
+        "</g>" +
+        "<g class='rd-wheel' style='transform-origin: 88px 58px;'>" +
+        "<circle cx='88' cy='58' r='17' />" +
+        "<path d='M88 58 L88 41 M88 58 L102 66 M88 58 L74 66' />" +
+        "</g>" +
+        "<path class='rd-fig-line' d='M22 58 L46 34 L70 34 L88 58 M46 34 L58 58 L22 58 M70 34 L64 20 H74' />" +
+        "<path class='rd-fig-line' d='M52 34 L62 18' />" +
+        "<circle class='rd-fig-head' cx='66' cy='10' r='6' />" +
+        "</svg>");
+}
+
+<section class="rd-hero" data-hero>
+    <div class="rd-wrap rd-hero-grid">
+
+        <div data-reveal>
+            <p class="rd-eyebrow">@heroEyebrow</p>
+            <h1 class="rd-hero-title">
+                @heroTitle
+                @if (!isLoggedIn)
+                {
+                    <br /><span class="rd-accent-text">One place.</span>
+                }
+            </h1>
+            <p class="rd-lead">
+                @(isLoggedIn
+                    ? "Everything for your races is one click away."
+                    : "Run, walk or ride. Enrol in the right category and follow every result from one account.")
+            </p>
+            <div class="rd-header-actions mt-4">
+                <a class="rd-btn rd-btn-accent rd-btn-lg" asp-controller="@primaryLink.Item1" asp-action="@primaryLink.Item2">@primaryLink.Item3</a>
+            </div>
+        </div>
+
+        <div class="rd-orbit-stage" aria-hidden="true" data-parallax="18">
+            <div class="rd-rings" data-rings>
+                <span class="rd-ring rd-ring-outer">
+                    <span class="rd-ring-rider" data-rider data-caption="Cycle: the outer loop, the fastest lap.">
+                        <span class="rd-ring-upright" style="--tint: 34, 211, 238;">
+                            @CyclistFigure()
+                            <span class="rd-ring-tag">Cycle</span>
+                        </span>
+                    </span>
+                </span>
+
+                <span class="rd-ring rd-ring-middle">
+                    <span class="rd-ring-rider" data-rider data-caption="Run: the middle loop, a full stride.">
+                        <span class="rd-ring-upright" style="--tint: 255, 42, 95;">
+                            @RunnerFigure()
+                            <span class="rd-ring-tag">Run</span>
+                        </span>
+                    </span>
+                </span>
+
+                <span class="rd-ring rd-ring-inner">
+                    <span class="rd-ring-rider" data-rider data-caption="Walk: the inner loop, a steady pace.">
+                        <span class="rd-ring-upright" style="--tint: 250, 204, 21;">
+                            @WalkerFigure()
+                            <span class="rd-ring-tag">Walk</span>
+                        </span>
+                    </span>
+                </span>
+            </div>
+
+            <p class="rd-rings-caption" data-rings-caption data-idle="Hover to pause. Tap a rider for their pace.">Hover to pause. Tap a rider for their pace.</p>
+        </div>
+
+    </div>
+</section>
+
+<section class="rd-track" aria-label="Runners, walkers and cyclists">
+    <div class="rd-lane rd-lane-run">
+        @for (var i = 0; i < 4; i++)
+        {
+            <span class="rd-athlete" style="--dur: 8s; --delay: -@(i * 2)s;">@RunnerFigure()</span>
+        }
+    </div>
+    <div class="rd-lane rd-lane-cycle">
+        @for (var i = 0; i < 3; i++)
+        {
+            <span class="rd-athlete" style="--dur: 7s; --delay: -@(i * 3)s;">@CyclistFigure()</span>
+        }
+    </div>
+    <div class="rd-lane rd-lane-walk">
+        @for (var i = 0; i < 3; i++)
+        {
+            <span class="rd-athlete" style="--dur: 16s; --delay: -@(i * 5)s;">@WalkerFigure()</span>
+        }
+    </div>
+</section>
+
+<section class="rd-landing-section">
+    <div class="rd-wrap">
+        <div class="rd-section-head" data-reveal>
+            <p class="rd-eyebrow">Disciplines</p>
+            <h2>Pick your race</h2>
+            <p>Three ways to take part, each with categories for every age and distance.</p>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var d in disciplines)
+            {
+                <div class="col-md-6 col-xl-4" data-reveal>
+                    <article class="rd-disc" style="--tint: @d.Tint;" data-tilt>
+                        <div class="rd-disc-icon">
+                            @if (d.Name == "Run")
+                            {
+                                @RunnerFigure()
+                            }
+                            else if (d.Name == "Walk")
+                            {
+                                @WalkerFigure()
+                            }
+                            else
+                            {
+                                @CyclistFigure()
+                            }
+                        </div>
+                        <h3>@d.Name</h3>
+                        <p>@d.Text</p>
+                        <p class="rd-programme-detail">@d.Detail</p>
+                        <a class="rd-disc-link" asp-controller="Events" asp-action="Index" asp-route-type="@d.Type">
+                            @d.Name events &rarr;
+                        </a>
+                    </article>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="rd-landing-section">
+    <div class="rd-wrap">
+        <div class="rd-section-head" data-reveal>
+            <p class="rd-eyebrow">@(isLoggedIn ? "Your tools" : "Inside RaceDay")</p>
+            <h2>@(isLoggedIn ? "What you can do" : "The whole platform")</h2>
+            @if (!isLoggedIn)
+            {
+                <p>Tools that need an account open the login page.</p>
+            }
+        </div>
+
+        <div class="row g-4">
+            @foreach (var tile in visibleTiles)
+            {
+                var locked = !isLoggedIn && tile.Role != "";
+
+                <div class="col-md-6 col-xl-4" data-reveal>
+                    <a class="rd-tile @(locked ? "is-locked" : "")" data-tilt
+                       asp-controller="@(locked ? "Auth" : tile.Controller)"
+                       asp-action="@(locked ? "Login" : tile.Action)">
+                        <h3>@tile.Title</h3>
+                        <p>@tile.Text</p>
+                        <span class="rd-tile-link">@(locked ? "Log in to open" : "Open")</span>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@if (!isLoggedIn)
+{
+    <section class="rd-landing-section rd-why">
+        <div class="rd-wrap">
+            <div class="rd-section-head" data-reveal>
+                <p class="rd-eyebrow">Why RaceDay</p>
+                <h2>Built for race day</h2>
+                <p>Registration, categories and results in one place, so organisers spend less time on admin and participants always know where they stand.</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-sm-6 col-xl-3" data-reveal>
+                    <div class="rd-why-card" data-tilt>
+                        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 40V8M10 8h26l-5 8 5 8H10" /></svg>
+                        <h3>Discover events</h3>
+                        <p>Search upcoming races by name, location or type, then open any event for full details.</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3" data-reveal>
+                    <div class="rd-why-card" data-tilt>
+                        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="26" r="15" /><path d="M24 26l7-7M24 6v5M19 4h10" /></svg>
+                        <h3>Enrol with confidence</h3>
+                        <p>Choose a category that suits your level and age. Eligibility is checked before you register.</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3" data-reveal>
+                    <div class="rd-why-card" data-tilt>
+                        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 40h32M14 40V24M24 40V14M34 40V20" /></svg>
+                        <h3>Track your results</h3>
+                        <p>Organisers record finish times and positions, and participants see their full race history.</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3" data-reveal>
+                    <div class="rd-why-card" data-tilt>
+                        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l15 6v12c0 9-6 16-15 18C15 40 9 33 9 24V12z" /><path d="M17 24l5 5 9-10" /></svg>
+                        <h3>Secure accounts</h3>
+                        <p>Role-based access keeps organiser tools separate from participant pages.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="rd-kpis">
+        <div class="rd-wrap rd-kpis-grid">
+            <div class="rd-kpi" data-reveal>
+                <span class="rd-kpi-num"><span data-count="3">3</span></span>
+                <span class="rd-kpi-text">Event types: run, walk and cycle</span>
+            </div>
+            <div class="rd-kpi" data-reveal>
+                <span class="rd-kpi-num"><span data-count="2">2</span></span>
+                <span class="rd-kpi-text">Account roles: participant and organiser</span>
+            </div>
+            <div class="rd-kpi" data-reveal>
+                <span class="rd-kpi-num"><span data-count="1">1</span></span>
+                <span class="rd-kpi-text">Place for entries, categories and results</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="rd-roles" data-role-tabs>
+        <div class="rd-wrap">
+            <div data-reveal>
+                <p class="rd-eyebrow">Two roles</p>
+                <h2>Made for both sides of the start line</h2>
+            </div>
+
+            <div class="rd-role-tabs" role="tablist" data-reveal>
+                <button type="button" class="rd-role-tab is-active" role="tab" aria-selected="true" data-role-tab="participant">Participant</button>
+                <button type="button" class="rd-role-tab" role="tab" aria-selected="false" data-role-tab="organiser">Organiser</button>
+            </div>
+
+            <div class="rd-role-panel" role="tabpanel" data-role-panel="participant">
+                <h3>Enter races and track your history</h3>
+                <p>Choose a category, enrol and see every finish time and position in one place.</p>
+                <ul class="rd-check-list">
+                    <li>Browse upcoming runs, walks and cycle events</li>
+                    <li>Enrol in the category that suits you</li>
+                    <li>Keep your emergency contact details up to date</li>
+                    <li>See your full race history and results</li>
+                </ul>
+                <a class="rd-btn rd-btn-accent rd-btn-lg" asp-controller="Auth" asp-action="Register">Create your account</a>
+            </div>
+
+            <div class="rd-role-panel" role="tabpanel" data-role-panel="organiser" hidden>
+                <h3>Run every event from one dashboard</h3>
+                <p>Create events with banners, set age and distance categories, review enrolments and record results.</p>
+                <ul class="rd-check-list">
+                    <li>Create and edit events with banner images</li>
+                    <li>Define age and distance categories</li>
+                    <li>View enrolments for each event</li>
+                    <li>Record finish times and positions after the race</li>
+                </ul>
+                <a class="rd-btn rd-btn-accent rd-btn-lg" asp-controller="Auth" asp-action="Login">Log in as organiser</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="rd-final">
+        <div class="rd-wrap" data-reveal>
+            <h2>Ready for your<br />next start line?</h2>
+            <div class="rd-header-actions">
+                <a class="rd-btn rd-btn-light rd-btn-lg" asp-controller="Auth" asp-action="Register">Create your account</a>
+            </div>
+        </div>
+    </section>
+}

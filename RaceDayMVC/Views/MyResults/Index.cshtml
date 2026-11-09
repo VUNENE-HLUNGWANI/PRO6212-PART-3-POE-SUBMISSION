@@ -1,0 +1,130 @@
+﻿@model List<JsonElement>
+@{
+    ViewData["Title"] = "My results";
+    var resultsError = ViewBag.ResultsError as string;
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Participant</p>
+        <h1 class="rd-title">My results</h1>
+        <p class="rd-subtitle">Finish times, positions and outcomes from the races you have taken part in.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Home")">Back to home</a>
+        <a class="rd-btn rd-btn-outline" asp-controller="MyEnrolments" asp-action="Index">My enrolments</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(resultsError))
+{
+    <div class="rd-alert rd-alert-error" role="alert">@resultsError</div>
+}
+else if (Model.Count == 0)
+{
+    <div class="rd-empty">
+        <h2>No results yet</h2>
+        <p>Your results appear here after the organiser records them for an event you entered.</p>
+        <a class="rd-btn rd-btn-primary" asp-controller="Events" asp-action="Index">Browse events</a>
+    </div>
+}
+else
+{
+    <div class="rd-card">
+        <div class="rd-table-wrap">
+            <table class="rd-table">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Outcome</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var result in Model)
+                    {
+                        var resultDate = DateValue(result, "eventDate");
+                        var position = IntValue(result, "position");
+                        var finishers = IntValue(result, "totalFinishers") ?? 0;
+                        var status = Text(result, "status", "-");
+                        var reason = Text(result, "reason").Trim();
+
+                        var isFinished = string.Equals(status, "Finished", StringComparison.OrdinalIgnoreCase);
+                        var isDsq = string.Equals(status, "DSQ", StringComparison.OrdinalIgnoreCase);
+
+                        // Same default the organiser page uses, shown only if no message was stored.
+                        var dsqMessage = string.IsNullOrWhiteSpace(reason)
+                            ? "This race is gender specific and you do not qualify."
+                            : reason;
+
+                        var badge = status switch
+                        {
+                            "Finished" => "rd-badge-success",
+                            "DNF" => "rd-badge-warn",
+                            "DNS" => "rd-badge-soft",
+                            "DSQ" => "rd-badge-danger",
+                            _ => "rd-badge-soft"
+                        };
+                        var label = status switch
+                        {
+                            "Finished" => "Finished",
+                            "DNF" => "Did not finish",
+                            "DNS" => "Did not start",
+                            "DSQ" => "Disqualified",
+                            _ => status
+                        };
+
+                        var rawTime = Text(result, "time");
+                        var timeDisplay = TimeSpan.TryParse(rawTime, CultureInfo.InvariantCulture, out var parsedTime)
+                            ? parsedTime.ToString(@"hh\:mm\:ss")
+                            : rawTime;
+
+                        <tr>
+                            <td><strong>@Text(result, "eventName")</strong></td>
+                            <td>@(resultDate.HasValue ? resultDate.Value.ToString("dd MMM yyyy") : "-")</td>
+                            <td>@Text(result, "categoryName", "-")</td>
+                            <td><span class="rd-badge @badge">@label</span></td>
+                            <td>
+                                @if (isFinished)
+                                {
+                                    <div class="rd-result-finish">
+                                        <div class="rd-result-item">
+                                            <span class="rd-result-label">Finish time</span>
+                                            <span class="rd-result-value">@(string.IsNullOrWhiteSpace(timeDisplay) ? "-" : timeDisplay)</span>
+                                        </div>
+                                        <div class="rd-result-item">
+                                            <span class="rd-result-label">Position</span>
+                                            <span class="rd-result-value">
+                                                @if (position.HasValue)
+                                                {
+                                                    @position.Value
+                                                    @if (finishers > 0)
+                                                    {
+                                                        <span class="rd-result-of"> of @finishers</span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                                else if (isDsq)
+                                {
+                                    <div class="rd-result-message rd-result-message-dsq">
+                                        <span class="rd-result-label">Message</span>
+                                        <span>@dsqMessage</span>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

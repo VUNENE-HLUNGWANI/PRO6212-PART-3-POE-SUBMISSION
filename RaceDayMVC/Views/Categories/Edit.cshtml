@@ -1,0 +1,75 @@
+﻿@model RaceDayMVC.Controllers.CategoryEditViewModel
+@{
+    ViewData["Title"] = "Edit category";
+    var levels = new[] { "All", "Beginner", "Intermediate", "Advanced" };
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">@Model.EventName</p>
+        <h1 class="rd-title">Edit category</h1>
+        <p class="rd-subtitle">Update the fee, distance, level or capacity.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Categories")">Back to categories</a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="rd-card">
+            <div class="rd-card-body p-4 p-lg-5">
+                <div asp-validation-summary="ModelOnly" class="rd-validation-summary rd-alert rd-alert-error"></div>
+
+                <form asp-controller="Categories" asp-action="Edit" asp-route-id="@Model.CategoryID" method="post" novalidate>
+                    <input type="hidden" asp-for="CategoryID" />
+                    <input type="hidden" asp-for="EventID" />
+
+                    <div class="rd-form-grid">
+                        <div class="rd-field-full">
+                            <label asp-for="CategoryName" class="form-label"></label>
+                            <input asp-for="CategoryName" class="form-control" maxlength="50" required />
+                            <span asp-validation-for="CategoryName" class="field-validation-error"></span>
+                        </div>
+                        <div>
+                            <label asp-for="Distance" class="form-label"></label>
+                            <input asp-for="Distance" type="number" step="0.01" min="0.01" class="form-control" required />
+                            <span asp-validation-for="Distance" class="field-validation-error"></span>
+                        </div>
+                        <div>
+                            <label asp-for="CategoryLevel" class="form-label"></label>
+                            <select asp-for="CategoryLevel" class="form-select" required>
+                                @foreach (var level in levels)
+                                {
+                                    <option value="@level" selected="@(level == Model.CategoryLevel ? "selected" : null)">@level</option>
+                                }
+                            </select>
+                            <span asp-validation-for="CategoryLevel" class="field-validation-error"></span>
+                        </div>
+                        <div>
+                            <label asp-for="EntryFee" class="form-label"></label>
+                            <input asp-for="EntryFee" type="number" step="0.01" min="0" class="form-control" required />
+                            <span asp-validation-for="EntryFee" class="field-validation-error"></span>
+                        </div>
+                        <div>
+                            <label asp-for="MaxParticipants" class="form-label"></label>
+                            <input asp-for="MaxParticipants" type="number" min="1" class="form-control" required />
+                            <span asp-validation-for="MaxParticipants" class="field-validation-error"></span>
+                        </div>
+                    </div>
+
+                    <div class="rd-wizard-actions">
+                        <a class="rd-btn rd-btn-outline" asp-controller="Categories" asp-action="Index">Cancel</a>
+                        <div>
+                            <button type="submit" class="rd-btn rd-btn-primary">Save changes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,25 @@
+﻿@model RaceDayMVC.Models.EditEventViewModel
+@{
+    ViewData["Title"] = "Edit event";
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Organiser</p>
+        <h1 class="rd-title">Edit event</h1>
+        <p class="rd-subtitle">Update the details, check the summary, then save.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Organiser")">Back to dashboard</a>
+    </div>
+</div>
+
+<div class="rd-card">
+    <div class="rd-card-body p-4 p-lg-5">
+        <partial name="_EventForm" model="Model" />
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

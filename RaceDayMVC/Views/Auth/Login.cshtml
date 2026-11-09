@@ -1,0 +1,57 @@
+﻿@model RaceDayMVC.Controllers.AuthController.LoginViewModel
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="rd-auth">
+    <aside class="rd-auth-panel">
+        <p class="rd-eyebrow">Welcome back</p>
+        <h1>Log in to your race account.</h1>
+        <p class="rd-lead">Enrol in events, track your results and manage your profile from one place.</p>
+    </aside>
+
+    <div class="rd-auth-form">
+        <div class="rd-card">
+            <div class="rd-card-body">
+                <p class="rd-eyebrow">Log in</p>
+                <h2 class="rd-title mb-1">Access your account</h2>
+                <p class="rd-subtitle mb-4">Use the email address and password you registered with.</p>
+
+                @if (ViewBag.Error is string loginError)
+                {
+                    <div class="rd-alert rd-alert-error" role="alert">@loginError</div>
+                }
+
+                <div asp-validation-summary="ModelOnly" class="rd-validation-summary rd-alert rd-alert-error"></div>
+
+                <form asp-action="Login" method="post" novalidate>
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" autocomplete="email" autofocus />
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+
+                    <button type="submit" class="rd-btn rd-btn-primary rd-btn-block">Log in</button>
+                </form>
+
+                <p class="rd-muted text-center mt-4 mb-0">
+                    New to RaceDay? <a asp-action="Register">Create an account</a>
+                </p>
+
+                <div class="text-center mt-3">
+                    <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Home")">Back to home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

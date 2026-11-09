@@ -1,0 +1,177 @@
+﻿@using RaceDayMVC.Models
+@model ResultsEntryViewModel
+@{
+    var heading = string.IsNullOrWhiteSpace(Model.EventName) ? "Enter results" : Model.EventName;
+    var raceDate = Model.EventDate.HasValue
+        ? Model.EventDate.Value.ToString("dddd, dd MMMM yyyy")
+        : "Date to be confirmed";
+    ViewData["Title"] = "Enter results";
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Results · @raceDate</p>
+        <h1 class="rd-title">@heading</h1>
+        <p class="rd-subtitle">Record each participant's finish time and position, or their status if they did not finish.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Organiser")">Back to dashboard</a>
+    </div>
+</div>
+
+@if (Model.TotalCount == 0)
+{
+    <div class="rd-empty">
+        <h2>No participants yet</h2>
+        <p>Results can be entered once participants have enrolled.</p>
+        <a class="rd-btn rd-btn-outline" asp-controller="Organiser" asp-action="Index">Back to dashboard</a>
+    </div>
+}
+else
+{
+    <div class="rd-stat-row">
+        <div class="rd-stat">
+            <div class="rd-stat-value">@Model.RecordedCount of @Model.TotalCount</div>
+            <div class="rd-stat-label">Results recorded</div>
+        </div>
+    </div>
+
+    <form asp-controller="Results" asp-action="Enter" method="post" novalidate>
+        <input type="hidden" asp-for="EventId" />
+
+        <div class="rd-card">
+            <div class="rd-table-wrap">
+                <table class="rd-table" id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Bib</th>
+                            <th>Participant</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Finish time</th>
+                            <th>Position</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Rows.Count; i++)
+                        {
+                            var row = Model.Rows[i];
+
+                            <tr>
+                                <td>
+                                    <span class="rd-badge rd-badge-soft">@row.Bib</span>
+                                    <input type="hidden" asp-for="Rows[i].ParticipantEventId" />
+                                    <input type="hidden" asp-for="Rows[i].ResultId" />
+                                    <input type="hidden" asp-for="Rows[i].Bib" />
+                                    <input type="hidden" asp-for="Rows[i].ParticipantName" />
+                                    <input type="hidden" asp-for="Rows[i].CategoryName" />
+                                    <input type="hidden" asp-for="Rows[i].Gender" />
+                                    <input type="hidden" asp-for="Rows[i].CategoryGender" />
+                                </td>
+                                <td>
+                                    @row.ParticipantName
+                                    @if (!string.IsNullOrEmpty(row.Gender))
+                                    {
+                                        <div class="rd-muted small">@row.Gender</div>
+                                    }
+                                    @if (row.IsGenderMismatch)
+                                    {
+                                        <div><span class="rd-badge rd-badge-danger">Gender mismatch: will be saved as DSQ</span></div>
+                                    }
+                                </td>
+                                <td>@row.CategoryName</td>
+                                <td>
+                                    <select asp-for="Rows[i].Status" class="form-select rd-input-sm"
+                                            data-rd="status" data-mismatch="@(row.IsGenderMismatch ? "true" : "false")">
+                                        @foreach (var status in ResultStatuses.All)
+                                        {
+                                            <option value="@status" selected="@(string.Equals(status, row.Status, StringComparison.OrdinalIgnoreCase))">
+                                                @ResultStatuses.Describe(status)
+                                            </option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input asp-for="Rows[i].Time" class="form-control rd-input-sm" data-rd="time"
+                                           placeholder="hh:mm:ss" pattern="[0-9]{1,2}:[0-9]{2}:[0-9]{2}" />
+                                </td>
+                                <td>
+                                    <input asp-for="Rows[i].Position" type="number" min="1" class="form-control rd-input-sm"
+                                           data-rd="position" placeholder="1" />
+                                </td>
+                                <td>
+                                    <input asp-for="Rows[i].Reason" class="form-control rd-input-sm" data-rd="reason"
+                                           placeholder="Message is required" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="rd-wizard-actions rd-wizard-actions-end">
+            <button type="submit" class="rd-btn rd-btn-primary">Save results</button>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const DEFAULT_MESSAGE = "This race is gender specific and you do not qualify.";
+            const table = document.getElementById("resultsTable");
+
+            if (!table) return;
+
+            // Shows or hides an input completely. A hidden input is also disabled so it is not sent.
+            function setVisible(input, visible) {
+                input.hidden = !visible;
+                input.style.display = visible ? "" : "none";
+                input.disabled = !visible;
+
+                if (!visible) {
+                    input.value = "";
+                }
+            }
+
+            table.querySelectorAll("tbody tr").forEach(function (row) {
+                const status = row.querySelector('[data-rd="status"]');
+                const time = row.querySelector('[data-rd="time"]');
+                const position = row.querySelector('[data-rd="position"]');
+                const reason = row.querySelector('[data-rd="reason"]');
+
+                if (!status || !time || !position || !reason) return;
+
+                const isMismatch = status.dataset.mismatch === "true";
+
+                function apply() {
+                    // Gender mismatches are always disqualified.
+                    if (isMismatch) {
+                        status.value = "DSQ";
+                    }
+
+                    const value = status.value;
+                    const finished = value === "Finished";
+                    const dsq = value === "DSQ";
+
+                    // Finished: time and position only.
+                    setVisible(time, finished);
+                    setVisible(position, finished);
+
+                    // DSQ: message only. DNF and DNS have nothing to fill in.
+                    const hadMessage = reason.value;
+                    setVisible(reason, dsq);
+
+                    if (dsq) {
+                        reason.value = hadMessage && hadMessage.trim() ? hadMessage : DEFAULT_MESSAGE;
+                    }
+                }
+
+                status.addEventListener("change", apply);
+                apply();
+            });
+        })();
+    </script>
+}

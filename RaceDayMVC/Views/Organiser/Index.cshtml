@@ -1,0 +1,329 @@
+﻿@using System
+@using System.Collections.Generic
+@using System.Globalization
+@using System.Linq
+@using System.Text.Json
+
+@model List<JsonElement>
+
+@functions {
+    private static JsonElement FindProperty(JsonElement item, string property)
+    {
+        if (item.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var element in item.EnumerateObject())
+            {
+                if (string.Equals(
+                    element.Name,
+                    property,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return element.Value;
+                }
+            }
+        }
+
+        return default;
+    }
+
+    private static string Text(JsonElement item, string property)
+    {
+        var value = FindProperty(item, property);
+
+        if (value.ValueKind == JsonValueKind.Undefined ||
+            value.ValueKind == JsonValueKind.Null)
+        {
+            return "-";
+        }
+
+        return value.ToString();
+    }
+
+    private static int? IntValue(JsonElement item, string property)
+    {
+        var value = FindProperty(item, property);
+
+        if (value.ValueKind == JsonValueKind.Number &&
+            value.TryGetInt32(out int number))
+        {
+            return number;
+        }
+
+        return int.TryParse(value.ToString(), out int parsed)
+            ? parsed
+            : null;
+    }
+
+    private static DateTime? DateValue(JsonElement item, string property)
+    {
+        var value = FindProperty(item, property);
+
+        if (value.ValueKind == JsonValueKind.Undefined ||
+            value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(
+            value.ToString(),
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out DateTime date)
+                ? date
+                : null;
+    }
+
+    private static List<JsonElement> ListOf(JsonElement item, string property)
+    {
+        var value = FindProperty(item, property);
+
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            return new List<JsonElement>();
+        }
+
+        return value.EnumerateArray()
+            .Select(element => element.Clone())
+            .ToList();
+    }
+}
+
+@{
+    ViewData["Title"] = "Organiser Dashboard";
+
+    // Oldest race first, then by name, so results can be entered in order.
+    var events = (Model ?? new List<JsonElement>())
+        .OrderBy(ev => DateValue(ev, "date") ?? DateTime.MaxValue)
+        .ThenBy(ev => Text(ev, "name"), StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var loadError = ViewBag.Error as string;
+
+    var totalCategories = events.Sum(
+        ev => ListOf(ev, "categories").Count);
+
+    // Enrolments per event come from the controller (active enrolments only).
+    var enrolmentCounts = ViewBag.EnrolmentCounts as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+    var totalEnrolments = enrolmentCounts.Values.Sum();
+
+    // Events are sorted by date, so the first one on or after today is next.
+    var nextEvent = events.FirstOrDefault(
+        ev => (DateValue(ev, "date") ?? DateTime.MinValue).Date >= DateTime.Today);
+    var nextEventId = nextEvent.ValueKind == JsonValueKind.Object
+        ? (IntValue(nextEvent, "eventID") ?? 0)
+        : -1;
+    DateTime? nextDate = nextEvent.ValueKind == JsonValueKind.Object
+        ? DateValue(nextEvent, "date")
+        : null;
+    var nextLabel = nextDate.HasValue
+        ? nextDate.Value.ToString("dd MMM yyyy")
+        : "None scheduled";
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Organiser</p>
+        <h1 class="rd-title">Dashboard</h1>
+        <p class="rd-subtitle">
+            Manage your events, registrations and results.
+        </p>
+    </div>
+
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-outline"
+           asp-controller="Categories"
+           asp-action="Index">
+            Categories
+        </a>
+
+        <a class="rd-btn rd-btn-accent"
+           asp-controller="Organiser"
+           asp-action="Create">
+            Create event
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(loadError))
+{
+    <div class="rd-alert rd-alert-error" role="alert">
+        @loadError
+    </div>
+}
+
+<div class="rd-stat-row">
+    <div class="rd-stat">
+        <div class="rd-stat-value">@events.Count</div>
+        <div class="rd-stat-label">Events</div>
+    </div>
+
+    <div class="rd-stat">
+        <div class="rd-stat-value">@totalCategories</div>
+        <div class="rd-stat-label">Categories</div>
+    </div>
+    <div class="rd-stat">
+        <div class="rd-stat-value">@totalEnrolments</div>
+        <div class="rd-stat-label">Total enrolments</div>
+    </div>
+    <div class="rd-stat">
+        <div class="rd-stat-value">@nextLabel</div>
+        <div class="rd-stat-label">Next event</div>
+    </div>
+</div>
+
+@if (events.Count == 0 && string.IsNullOrEmpty(loadError))
+{
+    <div class="rd-empty">
+        <h2>No events yet</h2>
+
+        <p>
+            Create your first event, then add its categories.
+        </p>
+
+        <a class="rd-btn rd-btn-accent"
+           asp-controller="Organiser"
+           asp-action="Create">
+            Create an event
+        </a>
+    </div>
+}
+else if (events.Count > 0)
+{
+    <div class="rd-card">
+        <div class="rd-table-wrap">
+            <table class="rd-table">
+                <thead>
+                    <tr>
+                        <th style="white-space: nowrap;">Date</th>
+                        <th>Event</th>
+                        <th>Location</th>
+                        <th>Categories</th>
+                        <th>Enrolments</th>
+                        <th>Registration</th>
+                        <th class="text-end" style="white-space: nowrap;">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var ev in events)
+                    {
+                        var id = IntValue(ev, "eventID") ?? 0;
+                        var date = DateValue(ev, "date");
+                        var deadline = DateValue(ev, "registrationDeadline");
+                        var raceHasRun = date.HasValue && date.Value.Date <= DateTime.Today;
+
+                        // Registration is closed once the deadline has passed or the race has run.
+                        var registrationClosed = raceHasRun
+                            || (deadline.HasValue && deadline.Value <= DateTime.Now);
+
+                        <tr>
+                            <td style="white-space: nowrap;">
+                                @(date.HasValue
+                                    ? date.Value.ToString("dd MMM yyyy")
+                                    : "-")
+                                @if (id == nextEventId)
+                                {
+                                    <div class="mt-1"><span class="rd-badge rd-badge-accent">Next up</span></div>
+                                }
+                            </td>
+
+                            <td>
+                                <strong>@Text(ev, "name")</strong>
+
+                                <div class="rd-muted small">
+                                    @Text(ev, "eventType")
+                                </div>
+                            </td>
+
+                            <td>@Text(ev, "location")</td>
+
+                            <td>
+                                @ListOf(ev, "categories").Count
+                            </td>
+                            <td>
+                                @{
+                                    enrolmentCounts.TryGetValue(id, out var enrolled);
+                                }
+                                <a class="rd-badge rd-badge-soft"
+                                   asp-controller="Organiser"
+                                   asp-action="Registrations"
+                                   asp-route-id="@id"
+                                   title="View enrolments">@enrolled enrolled</a>
+                            </td>
+
+                            <td style="white-space: nowrap;">
+                                @if (registrationClosed)
+                                {
+                                    <span class="rd-badge rd-badge-muted">Closed</span>
+                                }
+                                else
+                                {
+                                    <span class="rd-badge rd-badge-success">Open</span>
+                                }
+
+                                <div class="rd-muted small mt-1">
+                                    @(deadline.HasValue
+                                        ? "Closes " + deadline.Value.ToString("dd MMM yyyy")
+                                        : "No closing date")
+                                </div>
+                            </td>
+
+                            <td class="text-end" style="white-space: nowrap;">
+                                <div class="d-flex flex-nowrap justify-content-end align-items-center gap-2">
+
+                                    <a class="rd-btn rd-btn-outline rd-btn-sm"
+                                       asp-controller="Organiser"
+                                       asp-action="Edit"
+                                       asp-route-id="@id">
+                                        Edit
+                                    </a>
+
+                                    <a class="rd-btn rd-btn-outline rd-btn-sm"
+                                       asp-controller="Organiser"
+                                       asp-action="Registrations"
+                                       asp-route-id="@id">
+                                        Registrations
+                                    </a>
+
+                                    @if (raceHasRun)
+                                    {
+                                        <a class="rd-btn rd-btn-outline rd-btn-sm"
+                                           asp-controller="Organiser"
+                                           asp-action="Results"
+                                           asp-route-id="@id">
+                                            Results
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="rd-btn rd-btn-outline rd-btn-sm"
+                                              style="opacity: .45; cursor: not-allowed;"
+                                              aria-disabled="true"
+                                              title="Available once the race has taken place">
+                                            Results
+                                        </span>
+                                    }
+
+                                    <form asp-controller="Organiser"
+                                          asp-action="Delete"
+                                          asp-route-id="@id"
+                                          method="post"
+                                          class="m-0"
+                                          data-confirm="Delete this event? This cannot be undone.">
+
+                                        <button type="submit"
+                                                class="rd-btn rd-btn-danger rd-btn-sm">
+                                            Delete
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,235 @@
+﻿@model JsonElement
+@using RaceDayMVC.Helpers
+@{
+    var eventId = IntValue(Model, "eventID") ?? 0;
+    var name = Text(Model, "name");
+    ViewData["Title"] = name;
+
+    var description = Text(Model, "description");
+    var location = Text(Model, "location");
+    var eventType = Text(Model, "eventType");
+    var routemap = Text(Model, "routemap");
+    var banner = Text(Model, "bannerImageUri");
+    var date = DateValue(Model, "date");
+    var startTime = TimeText(Model, "startTime");
+    var distance = DecimalValue(Model, "distance");
+    var deadline = DateValue(Model, "registrationDeadline");
+    var registrationOpen = deadline.HasValue && deadline.Value >= DateTime.Now;
+    var categories = ListOf(Model, "categories");
+
+    var myEnrolment = (JsonElement?)ViewBag.MyEnrolment;
+    var ageMessages = ViewBag.CategoryAgeMessages as Dictionary<int, string>
+        ?? new Dictionary<int, string>();
+
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isLoggedIn = Context.Session.GetInt32("UserId").HasValue;
+    var isParticipant = string.Equals(role, "Participant", StringComparison.OrdinalIgnoreCase);
+
+    var myEnrolmentId = myEnrolment.HasValue ? IntValue(myEnrolment.Value, "participantEventID") : null;
+    var myCategoryId = myEnrolment.HasValue ? IntValue(myEnrolment.Value, "categoryID") : null;
+    var myBib = myEnrolment.HasValue ? Text(myEnrolment.Value, "bib") : string.Empty;
+    var myStatusView = ViewBag.MyStatus as EnrolmentStatusView;
+    var myStatus = myStatusView?.Label
+        ?? (myEnrolment.HasValue ? Text(myEnrolment.Value, "registrationStatus") : string.Empty);
+
+    var myCategoryName = string.Empty;
+    if (myCategoryId.HasValue)
+    {
+        foreach (var candidate in categories)
+        {
+            if (IntValue(candidate, "categoryID") == myCategoryId)
+            {
+                myCategoryName = Text(candidate, "categoryName");
+                break;
+            }
+        }
+    }
+}
+
+<div class="rd-page-header">
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Events")">Back to events</a>
+    </div>
+</div>
+
+<section class="rd-hero mb-4">
+    @if (!string.IsNullOrEmpty(banner))
+    {
+        <img class="rd-hero-banner" src="@banner" alt="" />
+    }
+    <div class="rd-hero-body">
+        <p class="rd-eyebrow">@eventType</p>
+        <h1>@name</h1>
+        <ul class="rd-meta">
+            <li>@(date.HasValue ? date.Value.ToString("dddd, dd MMMM yyyy") : "Date to be confirmed")</li>
+            <li>Starts @startTime</li>
+            <li>@location</li>
+            <li>@distance.ToString("0.##") km</li>
+        </ul>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="rd-card mb-4">
+            <div class="rd-card-body">
+                <h2 class="rd-card-title">About this event</h2>
+                <p class="mb-0">@description</p>
+
+                @if (!string.IsNullOrEmpty(routemap))
+                {
+                    <hr />
+                    <p class="rd-label mb-1">Route map</p>
+                    @if (routemap.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <a href="@routemap" target="_blank" rel="noopener">View route map</a>
+                    }
+                    else
+                    {
+                        <p class="mb-0">@routemap</p>
+                    }
+                }
+            </div>
+        </div>
+
+        <h2 class="rd-card-title">Categories</h2>
+
+        @if (categories.Count == 0)
+        {
+            <div class="rd-empty">
+                <p class="mb-0">No categories have been added to this event yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var category in categories)
+                {
+                    var categoryId = IntValue(category, "categoryID") ?? 0;
+                    var categoryName = Text(category, "categoryName");
+                    var level = Text(category, "categoryLevel");
+                    var fee = DecimalValue(category, "entryFee");
+                    var maxParticipants = IntValue(category, "maxParticipants") ?? 0;
+                    var categoryDistance = DecimalValue(category, "distance");
+                    var minAge = IntValue(category, "minAge");
+                    var maxAge = IntValue(category, "maxAge");
+                    var ageMessage = ageMessages.TryGetValue(categoryId, out var message) ? message : null;
+                    var isCurrent = myCategoryId.HasValue && myCategoryId.Value == categoryId;
+                    var actionAllowed = isParticipant && registrationOpen && ageMessage == null && !isCurrent;
+                    var disabledAttr = actionAllowed ? string.Empty : "disabled=\"disabled\"";
+
+                    <div class="col-md-6">
+                        <article class="rd-category @(isCurrent ? "is-selected" : "")">
+                            <div class="rd-category-head">
+                                <div>
+                                    <h3>@categoryName</h3>
+                                    <span class="rd-badge rd-badge-soft">@level</span>
+                                </div>
+                                <div class="rd-category-fee">@(fee == 0 ? "Free" : $"R {fee:N2}")</div>
+                            </div>
+
+                            <div class="rd-category-facts">
+                                <span>@categoryDistance.ToString("0.##") km</span>
+                                <span>Max @(maxParticipants > 0 ? maxParticipants.ToString() : "unlimited")</span>
+                                @if (minAge.HasValue || maxAge.HasValue)
+                                {
+                                    <span>Ages @(minAge?.ToString() ?? "any") to @(maxAge?.ToString() ?? "any")</span>
+                                }
+                            </div>
+
+                            @if (ageMessage != null)
+                            {
+                                <div class="rd-alert rd-alert-info mb-0">@ageMessage</div>
+                            }
+
+                            <div class="rd-category-actions">
+                                @if (isCurrent)
+                                {
+                                    <span class="rd-badge rd-badge-success">Your category</span>
+                                }
+                                else if (!isLoggedIn)
+                                {
+                                    <a class="rd-btn rd-btn-primary rd-btn-block" asp-controller="Auth" asp-action="Login">Log in to enrol</a>
+                                }
+                                else if (!isParticipant)
+                                {
+                                    <span class="rd-muted small">Only participants can enrol in events.</span>
+                                }
+                                else if (myEnrolment.HasValue)
+                                {
+                                    <form asp-controller="Events" asp-action="ChangeCategory" method="post">
+                                        <input type="hidden" name="eventId" value="@eventId" />
+                                        <input type="hidden" name="enrolmentId" value="@myEnrolmentId" />
+                                        <input type="hidden" name="categoryId" value="@categoryId" />
+                                        <button type="submit" class="rd-btn rd-btn-outline rd-btn-block" @Html.Raw(disabledAttr)>Move to this category</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-controller="Events" asp-action="Enrol" method="post">
+                                        <input type="hidden" name="eventId" value="@eventId" />
+                                        <input type="hidden" name="categoryId" value="@categoryId" />
+                                        <button type="submit" class="rd-btn rd-btn-primary rd-btn-block" @Html.Raw(disabledAttr)>Enrol in this category</button>
+                                    </form>
+                                }
+                            </div>
+                        </article>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <aside class="col-lg-4">
+        <div class="rd-sticky">
+            @if (myEnrolment.HasValue)
+            {
+                <div class="rd-card mb-4">
+                    <div class="rd-card-body">
+                        <h2 class="rd-card-title">Your enrolment</h2>
+                        <dl class="rd-dl">
+                            <dt>Category</dt>
+                            <dd>@myCategoryName</dd>
+                            <dt>Bib</dt>
+                            <dd>@myBib</dd>
+                            <dt>Status</dt>
+                            <dd><span class="rd-badge @(myStatusView?.CssClass ?? "rd-badge-soft")">@myStatus</span></dd>
+                        </dl>
+                        <a class="rd-btn rd-btn-outline rd-btn-block mt-3" asp-controller="MyEnrolments" asp-action="Index">View my enrolments</a>
+                    </div>
+                </div>
+            }
+
+            <div class="rd-card">
+                <div class="rd-card-body">
+                    <h2 class="rd-card-title">Registration</h2>
+
+                    @if (registrationOpen)
+                    {
+                        <span class="rd-badge rd-badge-accent">Open</span>
+                    }
+                    else
+                    {
+                        <span class="rd-badge rd-badge-muted">Closed</span>
+                    }
+
+                    <dl class="rd-dl mt-3">
+                        <dt>Closes</dt>
+                        <dd>@(deadline.HasValue ? deadline.Value.ToString("dd MMM yyyy, HH:mm") : "Not set")</dd>
+                        <dt>Location</dt>
+                        <dd>@location</dd>
+                        <dt>Event type</dt>
+                        <dd>@eventType</dd>
+                    </dl>
+
+                    @if (isParticipant && !registrationOpen)
+                    {
+                        <p class="rd-muted small mt-3 mb-0">Registration for this event has closed.</p>
+                    }
+
+                    <a class="rd-btn rd-btn-outline rd-btn-block mt-3" asp-controller="Events" asp-action="Index">Browse all events</a>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>

@@ -1,0 +1,164 @@
+﻿@model RaceDayMVC.Controllers.CategoryManagementViewModel
+@{
+    ViewData["Title"] = "Categories";
+    var levels = new[] { "All", "Beginner", "Intermediate", "Advanced" };
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Organiser</p>
+        <h1 class="rd-title">Categories</h1>
+        <p class="rd-subtitle">Add race categories to your events and manage fees and capacity.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Organiser")">Back to dashboard</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="rd-alert rd-alert-error" role="alert">@Model.Error</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="rd-validation-summary rd-alert rd-alert-error"></div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="rd-card rd-sticky">
+            <div class="rd-card-body">
+                <h2 class="rd-card-title">Add a category</h2>
+
+                @if (Model.Events.Count == 0)
+                {
+                    <p class="rd-muted">Create an event first, then add its categories here.</p>
+                    <a class="rd-btn rd-btn-accent rd-btn-block" asp-controller="Organiser" asp-action="Create">Create an event</a>
+                }
+                else
+                {
+                    <form asp-controller="Categories" asp-action="Create" method="post" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label" for="categoryEvent">Event</label>
+                            <select id="categoryEvent" asp-for="Category.EventID" class="form-select" required>
+                                <option value="">Choose an event</option>
+                                @foreach (var ev in Model.Events)
+                                {
+                                    <option value="@ev.EventID" selected="@(ev.EventID == Model.Category.EventID ? "selected" : null)">@ev.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Category.EventID" class="field-validation-error"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Category.CategoryName" class="form-label"></label>
+                            <input asp-for="Category.CategoryName" class="form-control" maxlength="50" required />
+                            <span asp-validation-for="Category.CategoryName" class="field-validation-error"></span>
+                        </div>
+
+                        <div class="rd-form-grid">
+                            <div>
+                                <label asp-for="Category.Distance" class="form-label"></label>
+                                <input asp-for="Category.Distance" type="number" step="0.01" min="0.01" class="form-control" required />
+                                <span asp-validation-for="Category.Distance" class="field-validation-error"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Category.EntryFee" class="form-label"></label>
+                                <input asp-for="Category.EntryFee" type="number" step="0.01" min="0" class="form-control" required />
+                                <span asp-validation-for="Category.EntryFee" class="field-validation-error"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Category.CategoryLevel" class="form-label"></label>
+                                <select asp-for="Category.CategoryLevel" class="form-select" required>
+                                    <option value="">Choose a level</option>
+                                    @foreach (var level in levels)
+                                    {
+                                        <option value="@level" selected="@(level == Model.Category.CategoryLevel ? "selected" : null)">@level</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Category.CategoryLevel" class="field-validation-error"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Category.MaxParticipants" class="form-label"></label>
+                                <input asp-for="Category.MaxParticipants" type="number" min="1" class="form-control" required />
+                                <span asp-validation-for="Category.MaxParticipants" class="field-validation-error"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="rd-btn rd-btn-primary rd-btn-block mt-4">Add category</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        @if (Model.Events.Count == 0)
+        {
+            <div class="rd-empty">
+                <h2>No events yet</h2>
+                <p class="mb-0">Categories belong to events. Create an event to get started.</p>
+            </div>
+        }
+
+        @foreach (var ev in Model.Events)
+        {
+            <div class="rd-card mb-4">
+                <div class="rd-card-body">
+                    <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+                        <div>
+                            <h2 class="rd-card-title mb-0">@ev.Name</h2>
+                            <div class="rd-muted small">@ev.Date.ToString("ddd, dd MMM yyyy")</div>
+                        </div>
+                        <span class="rd-badge rd-badge-soft">@ev.Categories.Count categories</span>
+                    </div>
+
+                    @if (ev.Categories.Count == 0)
+                    {
+                        <p class="rd-muted mb-0">No categories yet for this event.</p>
+                    }
+                    else
+                    {
+                        <div class="rd-table-wrap">
+                            <table class="rd-table">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Level</th>
+                                        <th>Distance</th>
+                                        <th>Fee</th>
+                                        <th>Max</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cat in ev.Categories)
+                                    {
+                                        <tr>
+                                            <td><strong>@cat.CategoryName</strong></td>
+                                            <td>@cat.CategoryLevel</td>
+                                            <td>@cat.Distance.ToString("0.##") km</td>
+                                            <td>@(cat.EntryFee == 0 ? "Free" : $"R {cat.EntryFee:N2}")</td>
+                                            <td>@cat.MaxParticipants</td>
+                                            <td class="text-end">
+                                                <div class="rd-header-actions justify-content-end">
+                                                    <a class="rd-btn rd-btn-outline rd-btn-sm" asp-controller="Categories" asp-action="Edit" asp-route-id="@cat.CategoryID">Edit</a>
+                                                    <form asp-controller="Categories" asp-action="Delete" asp-route-id="@cat.CategoryID" method="post" class="m-0"
+                                                          data-confirm="Delete this category?">
+                                                        <button type="submit" class="rd-btn rd-btn-danger rd-btn-sm">Delete</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

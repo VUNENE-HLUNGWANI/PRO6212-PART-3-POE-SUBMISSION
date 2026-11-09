@@ -1,0 +1,125 @@
+﻿@{
+    ViewData["Title"] = "Privacy";
+}
+
+<section class="rd-privacy-hero" data-reveal>
+    <div>
+        <p class="rd-eyebrow">Legal and information</p>
+        <h1 class="rd-privacy-title">Privacy <span class="rd-accent-text">Policy</span></h1>
+        <p class="rd-lead">
+            Your privacy matters to us. This page explains what RaceDay collects,
+            why we use it and how it is protected.
+        </p>
+        <div class="rd-header-actions mt-4">
+            <a class="rd-btn rd-btn-accent rd-btn-lg" href="#section-1">Start reading</a>
+            <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Home")">Back to home</a>
+        </div>
+    </div>
+
+    <div class="rd-privacy-orbit" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <svg class="rd-privacy-lock" viewBox="0 0 24 24">
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+    </div>
+</section>
+
+<nav class="rd-toc" aria-label="Policy sections" data-reveal>
+    <p class="rd-toc-label">Jump to a section</p>
+    <div class="rd-toc-links">
+        <a href="#section-1">01 Information</a>
+        <a href="#section-2">02 How we use it</a>
+        <a href="#section-3">03 Storage and security</a>
+        <a href="#section-4">04 Access</a>
+        <a href="#section-5">05 Your account</a>
+        <a href="#section-6">06 Questions</a>
+    </div>
+</nav>
+
+<div class="rd-policy-grid">
+
+    <article class="rd-policy" id="section-1" style="--tint: 255, 42, 95;" data-reveal>
+        <span class="rd-policy-num">01</span>
+        <h2 class="rd-policy-title">Information we collect</h2>
+        <p>
+            When you create a RaceDay account or take part in an event, we may collect:
+        </p>
+        <ul class="rd-policy-list">
+            <li>Your name and surname.</li>
+            <li>Contact details and account information.</li>
+            <li>Event registrations and enrolment details.</li>
+            <li>Event participation and results.</li>
+            <li>Profile pictures and uploaded event banners.</li>
+        </ul>
+    </article>
+
+    <article class="rd-policy" id="section-2" style="--tint: 255, 138, 31;" data-reveal>
+        <span class="rd-policy-num">02</span>
+        <h2 class="rd-policy-title">How we use your information</h2>
+        <p>
+            The information helps RaceDay provide and manage its event services. It is used to:
+        </p>
+        <ul class="rd-policy-list">
+            <li>Create and manage user accounts.</li>
+            <li>Process event registrations and enrolments.</li>
+            <li>Allow organisers to manage their events.</li>
+            <li>Record and display event results.</li>
+            <li>Maintain and improve the platform.</li>
+        </ul>
+    </article>
+
+    <article class="rd-policy" id="section-3" style="--tint: 46, 245, 154;" data-reveal>
+        <span class="rd-policy-num">03</span>
+        <h2 class="rd-policy-title">Data storage and security</h2>
+        <p>
+            RaceDay uses its API to manage application information. Profile pictures and
+            event banner images are stored using Azure Blob Storage through the API.
+            Appropriate security measures help protect information from unauthorised
+            access, alteration or disclosure. Passwords are never stored in plain text.
+        </p>
+    </article>
+
+    <article class="rd-policy" id="section-4" style="--tint: 34, 211, 238;" data-reveal>
+        <span class="rd-policy-num">04</span>
+        <h2 class="rd-policy-title">Access to your information</h2>
+        <p>
+            Access depends on your role. Participants manage their own account and
+            registrations. Organisers see the information they need to run their own
+            events and participants. Event results may be displayed as part of the
+            platform's event services.
+        </p>
+    </article>
+
+    <article class="rd-policy" id="section-5" style="--tint: 167, 139, 250;" data-reveal>
+        <span class="rd-policy-num">05</span>
+        <h2 class="rd-policy-title">Protecting your account</h2>
+        <p>
+            Keep your login details confidential and do not share your password. If you
+            suspect someone else has accessed your account, contact the RaceDay team
+            straight away.
+        </p>
+    </article>
+
+    <article class="rd-policy" id="section-6" style="--tint: 250, 204, 21;" data-reveal>
+        <span class="rd-policy-num">06</span>
+        <h2 class="rd-policy-title">Questions and enquiries</h2>
+        <p>
+            If you have questions about your personal information, how it is used or how
+            it is stored, contact the event organiser or the RaceDay team.
+        </p>
+    </article>
+
+</div>
+
+<section class="rd-policy-band" data-reveal>
+    <div>
+        <h2>Your privacy is important to RaceDay.</h2>
+        <p>Thank you for trusting us with your events, registrations and participation.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-light rd-btn-lg" asp-controller="Events" asp-action="Index">Browse events</a>
+    </div>
+</section>

@@ -1,0 +1,135 @@
+﻿@model JsonElement
+@using System.Collections.Generic
+@using System.Linq
+@using RaceDayMVC.Helpers
+@{
+    ViewData["Title"] = "My enrolments";
+
+    var enrolments = RootList(Model);
+    var statuses = ViewBag.Statuses as Dictionary<int, EnrolmentStatusView>
+                   ?? new Dictionary<int, EnrolmentStatusView>();
+
+    int upcomingCount = statuses.Values.Count(s => s.CanCancel);
+    int awaitingCount = statuses.Values.Count(s => s.Kind == "awaiting");
+    int finishedCount = statuses.Values.Count(s => s.Kind == "finished");
+}
+
+<div class="rd-page-header">
+    <div>
+        <p class="rd-eyebrow">Participant</p>
+        <h1 class="rd-title">My enrolments</h1>
+        <p class="rd-subtitle">Your registered races, bib numbers and where each one stands.</p>
+    </div>
+    <div class="rd-header-actions">
+        <a class="rd-btn rd-btn-ghost" href="@Url.Action("Index", "Events")">Back to events</a>
+        <a class="rd-btn rd-btn-outline" asp-controller="MyResults" asp-action="Index">My results</a>
+        <a class="rd-btn rd-btn-primary" asp-controller="Events" asp-action="Index">Find an event</a>
+    </div>
+</div>
+
+@if (enrolments.Count == 0)
+{
+    <div class="rd-empty">
+        <h2>No enrolments yet</h2>
+        <p>Find an event and enrol in a category to see it here.</p>
+        <a class="rd-btn rd-btn-primary" asp-controller="Events" asp-action="Index">Browse events</a>
+    </div>
+}
+else
+{
+    <div class="rd-summary" data-reveal>
+        <div class="rd-summary-item">
+            <div class="rd-summary-value" data-count="@upcomingCount">@upcomingCount</div>
+            <div class="rd-summary-label">Upcoming</div>
+        </div>
+        <div class="rd-summary-item">
+            <div class="rd-summary-value" data-count="@awaitingCount">@awaitingCount</div>
+            <div class="rd-summary-label">Awaiting results</div>
+        </div>
+        <div class="rd-summary-item">
+            <div class="rd-summary-value" data-count="@finishedCount">@finishedCount</div>
+            <div class="rd-summary-label">Finished</div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var enrolment in enrolments)
+        {
+            var enrolmentId = IntValue(enrolment, "participantEventID") ?? 0;
+            var eventId = IntValue(enrolment, "eventID") ?? 0;
+            var raceEvent = Get(enrolment, "event");
+            var category = Get(enrolment, "category");
+            var eventName = raceEvent.HasValue ? Text(raceEvent.Value, "name") : string.Empty;
+
+            if (string.IsNullOrEmpty(eventName))
+            {
+                eventName = $"Event #{eventId}";
+            }
+
+            var eventDate = raceEvent.HasValue ? DateValue(raceEvent.Value, "date") : null;
+            var eventLocation = raceEvent.HasValue ? Text(raceEvent.Value, "location") : string.Empty;
+            var categoryName = category.HasValue ? Text(category.Value, "categoryName") : "Not set";
+            var bib = Text(enrolment, "bib");
+            var registeredOn = DateValue(enrolment, "registrationDate");
+
+            var state = statuses.TryGetValue(enrolmentId, out var found)
+                ? found
+                : new EnrolmentStatusView
+                {
+                    Kind = "pending",
+                    Label = Text(enrolment, "registrationStatus"),
+                    CssClass = "rd-badge-soft"
+                };
+
+            <div class="col-12">
+                <article class="rd-card rd-enrol" data-status="@state.Kind">
+                    <div class="rd-card-body d-flex flex-wrap justify-content-between align-items-start gap-3">
+                        <div class="rd-enrol-main">
+                            <span class="rd-badge @state.CssClass">@state.Label</span>
+                            <h3 class="rd-card-title mt-2 mb-1">@eventName</h3>
+                            <div class="rd-muted small">
+                                @(eventDate.HasValue ? eventDate.Value.ToString("ddd, dd MMM yyyy") : "Date to be confirmed")
+                                @(string.IsNullOrEmpty(eventLocation) ? "" : $" · {eventLocation}")
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(state.Note))
+                            {
+                                <p class="rd-enrol-note">@state.Note</p>
+                            }
+
+                            <dl class="rd-dl mt-3">
+                                <dt>Category</dt>
+                                <dd>@categoryName</dd>
+                                <dt>Bib</dt>
+                                <dd>@bib</dd>
+                                @if (!string.IsNullOrEmpty(state.Time))
+                                {
+                                    <dt>Finish time</dt>
+                                    <dd class="rd-enrol-time">@state.Time</dd>
+                                }
+                                @if (state.Position.HasValue)
+                                {
+                                    <dt>Position</dt>
+                                    <dd>@state.Position.Value@(state.TotalFinishers > 0 ? $" of {state.TotalFinishers}" : string.Empty)</dd>
+                                }
+                                <dt>Registered</dt>
+                                <dd>@(registeredOn.HasValue ? registeredOn.Value.ToString("dd MMM yyyy") : "Not recorded")</dd>
+                            </dl>
+                        </div>
+
+                        <div class="rd-header-actions">
+                            <a class="rd-btn rd-btn-outline" asp-controller="Events" asp-action="Details" asp-route-id="@eventId">View event</a>
+                            @if (state.CanCancel)
+                            {
+                                <form asp-controller="MyEnrolments" asp-action="Cancel" asp-route-id="@enrolmentId" method="post"
+                                      data-confirm="Cancel this enrolment? This cannot be undone.">
+                                    <button type="submit" class="rd-btn rd-btn-danger">Cancel enrolment</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}

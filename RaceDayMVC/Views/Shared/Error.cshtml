@@ -1,0 +1,20 @@
+﻿@model RaceDayMVC.Models.ErrorViewModel
+@{
+    ViewData["Title"] = "Something went wrong";
+}
+
+<div class="rd-empty">
+    <p class="rd-eyebrow">Error</p>
+    <h1 class="rd-title mb-3">We could not complete that request</h1>
+    <p>Go back and try again. If the problem continues, contact the RaceDay team.</p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="rd-muted small">Request ID: <code>@Model.RequestId</code></p>
+    }
+
+    <div class="rd-header-actions justify-content-center">
+        <a class="rd-btn rd-btn-outline" href="@Url.Action("Index", "Home")">Back to home</a>
+        <a class="rd-btn rd-btn-primary" asp-controller="Home" asp-action="Index">Home</a>
+    </div>
+</div>
