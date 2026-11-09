@@ -1,14 +1,16 @@
-﻿@model List<JsonElement>
+
+@model List<JsonElement>
 @{
     ViewData["Title"] = "Events";
 
-    var upcoming = Model
-        .Where(ev =>
+    // Show all events, with upcoming events first and completed events afterwards.
+    var allEvents = Model
+        .OrderBy(ev =>
         {
             var eventDate = DateValue(ev, "date");
-            return !eventDate.HasValue || eventDate.Value.Date >= DateTime.Today;
+            return eventDate.HasValue && eventDate.Value.Date < DateTime.Today ? 1 : 0;
         })
-        .OrderBy(ev => DateValue(ev, "date") ?? DateTime.MaxValue)
+        .ThenBy(ev => DateValue(ev, "date") ?? DateTime.MaxValue)
         .ToList();
 
     var loadError = ViewBag.Error as string;
@@ -29,7 +31,7 @@
 {
     <div class="rd-alert rd-alert-error" role="alert">@loadError</div>
 }
-else if (upcoming.Count == 0)
+else if (allEvents.Count == 0)
 {
     <div class="rd-empty">
         <h2>No events yet</h2>
@@ -42,13 +44,14 @@ else
         <div class="rd-toolbar">
             <label class="rd-search">
                 <span class="visually-hidden">Search events</span>
-                <input type="search" class="form-control" placeholder="Search by name, location or type" data-filter />
+                <input type="search" class="form-control"
+                       placeholder="Search by name, location or type" data-filter />
             </label>
             <span class="rd-muted" data-pager-status></span>
         </div>
 
         <div class="row g-4" data-pager data-page-size="6">
-            @foreach (var ev in upcoming)
+            @foreach (var ev in allEvents)
             {
                 var id = IntValue(ev, "eventID") ?? 0;
                 var name = Text(ev, "name");
@@ -60,11 +63,32 @@ else
                 var deadline = DateValue(ev, "registrationDeadline");
                 var banner = Text(ev, "bannerImageUri");
                 var categoryCount = ListOf(ev, "categories").Count;
-                var registrationOpen = deadline.HasValue && deadline.Value >= DateTime.Now;
+
+                var eventCompleted = date.HasValue &&
+                                     date.Value.Date < DateTime.Today;
+
+                var registrationOpen = !eventCompleted &&
+                                       deadline.HasValue &&
+                                       deadline.Value >= DateTime.Now;
+
+                var statusText = eventCompleted
+                    ? "Event completed"
+                    : registrationOpen
+                        ? "Registration open"
+                        : "Registration closed";
+
+                var statusClass = registrationOpen
+                    ? "rd-badge-accent"
+                    : "rd-badge-muted";
+
                 var search = $"{name} {location} {type}".ToLowerInvariant();
 
-                <div class="col-md-6 col-xl-4" data-pager-item data-search="@search">
-                    <a class="rd-event-card" href="@Url.Action("Details", "Events", new { id })">
+                <div class="col-md-6 col-xl-4"
+                     data-pager-item data-search="@search">
+
+                    <a class="rd-event-card"
+                       href="@Url.Action("Details", "Events", new { id })">
+
                         <div class="rd-event-media">
                             @if (!string.IsNullOrEmpty(banner))
                             {
@@ -72,20 +96,37 @@ else
                             }
                             else
                             {
-                                <span class="rd-event-placeholder">@(string.IsNullOrEmpty(type) ? "Race" : type)</span>
+                                <span class="rd-event-placeholder">
+                                    @(string.IsNullOrEmpty(type) ? "Race" : type)
+                                </span>
                             }
-                            <span class="rd-badge @(registrationOpen ? "rd-badge-accent" : "rd-badge-muted")">
-                                @(registrationOpen ? "Registration open" : "Registration closed")
+
+                            <span class="rd-badge @statusClass">
+                                @statusText
                             </span>
                         </div>
 
                         <div class="rd-event-body">
                             <p class="rd-eyebrow mb-0">@type</p>
+
                             <h2 class="rd-event-title">@name</h2>
+
                             <ul class="rd-meta">
-                                <li>@(date.HasValue ? date.Value.ToString("ddd, dd MMM yyyy") : "Date to be confirmed")@(string.IsNullOrEmpty(startTime) ? "" : $" at {startTime}")</li>
+                                <li>
+                                    @(date.HasValue
+                                        ? date.Value.ToString("ddd, dd MMM yyyy")
+                                        : "Date to be confirmed")
+                                    @(string.IsNullOrEmpty(startTime)
+                                        ? ""
+                                        : $" at {startTime}")
+                                </li>
+
                                 <li>@location</li>
-                                <li>@distance.ToString("0.##") km &middot; @categoryCount categories</li>
+
+                                <li>
+                                    @distance.ToString("0.##") km
+                                    &middot; @categoryCount categories
+                                </li>
                             </ul>
                         </div>
                     </a>
@@ -93,14 +134,27 @@ else
             }
         </div>
 
-        <div class="rd-alert rd-alert-info mt-4" data-no-results hidden>
+        <div class="rd-alert rd-alert-info mt-4"
+             data-no-results hidden>
             No events match your search. Try a different name, location or type.
         </div>
 
-        <nav class="rd-pager" data-pager-controls aria-label="Event pages">
-            <button type="button" class="rd-btn rd-btn-outline" data-prev-page>Previous page</button>
+        <nav class="rd-pager"
+             data-pager-controls aria-label="Event pages">
+
+            <button type="button"
+                    class="rd-btn rd-btn-outline"
+                    data-prev-page>
+                Previous page
+            </button>
+
             <span class="rd-muted" data-page-label></span>
-            <button type="button" class="rd-btn rd-btn-primary" data-next-page>Next page</button>
+
+            <button type="button"
+                    class="rd-btn rd-btn-primary"
+                    data-next-page>
+                Next page
+            </button>
         </nav>
     </div>
 }
